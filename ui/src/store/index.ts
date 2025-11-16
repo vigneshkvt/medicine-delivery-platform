@@ -6,6 +6,7 @@ import catalogReducer from './catalogSlice';
 import cartReducer from './cartSlice';
 import ordersReducer from './ordersSlice';
 import adminReducer from './adminSlice';
+import medicineSearchReducer from './medicineSearchSlice';
 
 export const store = configureStore({
   reducer: {
@@ -15,7 +16,8 @@ export const store = configureStore({
     catalog: catalogReducer,
     cart: cartReducer,
     orders: ordersReducer,
-    admin: adminReducer
+    admin: adminReducer,
+    medicineSearch: medicineSearchReducer
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

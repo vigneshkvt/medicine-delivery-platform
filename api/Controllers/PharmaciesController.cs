@@ -141,4 +141,20 @@ public sealed class PharmaciesController : ControllerBase
         var result = await _mediator.Send(new ApprovePharmacyCommand(pharmacyId, adminId));
         return result.Succeeded ? NoContent() : BadRequest(new ErrorResponse(result.Errors.Any() ? result.Errors.ToArray() : new[] { "pharmacy.approval_failed" }));
     }
+
+    [HttpPost("{pharmacyId:guid}/reject")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Reject(Guid pharmacyId)
+    {
+        var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdValue, out var adminId))
+        {
+            return Unauthorized(new ErrorResponse(new[] { "auth.unauthorized" }));
+        }
+
+        var result = await _mediator.Send(new RejectPharmacyCommand(pharmacyId, adminId));
+        return result.Succeeded ? NoContent() : BadRequest(new ErrorResponse(result.Errors.Any() ? result.Errors.ToArray() : new[] { "pharmacy.rejection_failed" }));
+    }
 }

@@ -1,25 +1,33 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { NavigationContainer, DefaultTheme as NavigationDefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { View } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native-paper';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import RegisterScreen from '../screens/Auth/RegisterScreen';
 import PharmacyListScreen from '../screens/Pharmacies/PharmacyListScreen';
 import PharmacyDetailScreen from '../screens/Pharmacies/PharmacyDetailScreen';
 import CartScreen from '../screens/Orders/CartScreen';
+import PaymentScreen from '../screens/Orders/PaymentScreen';
 import OrderHistoryScreen from '../screens/Orders/OrderHistoryScreen';
 import SettingsScreen from '../screens/Settings/SettingsScreen';
 import PharmacyOrdersScreen from '../screens/Pharmacies/PharmacyOrdersScreen';
-import PharmacyInventoryScreen from '../screens/Pharmacies/PharmacyInventoryScreen';
 import AdminDashboardScreen from '../screens/Admin/AdminDashboardScreen';
 import AdminPharmacyApprovalsScreen from '../screens/Admin/AdminPharmacyApprovalsScreen';
 import LocationPermissionScreen from '../screens/Onboarding/LocationPermissionScreen';
 import ManualLocationScreen from '../screens/Onboarding/ManualLocationScreen';
-import { useAppSelector } from '../store/hooks';
+import MedicineSearchScreen from '../screens/Medicines/MedicineSearchScreen';
+import PharmacyProfileScreen from '../screens/Pharmacies/PharmacyProfileScreen';
+import PrescriptionValidationScreen from '../screens/Pharmacies/PrescriptionValidationScreen';
+import PharmacyReportsScreen from '../screens/Pharmacies/PharmacyReportsScreen';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { AuthState } from '../store/authSlice';
 import { LocationState } from '../store/locationSlice';
+import { PharmacyState, fetchManagedPharmacies } from '../store/pharmacySlice';
+import { Pharmacy } from '../services/pharmacyService';
 
 const RootStack = createNativeStackNavigator();
 const AuthStack = createNativeStackNavigator();
@@ -77,8 +85,10 @@ function CustomerNavigator() {
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, string> = {
+            Medicines: 'magnify',
             Pharmacies: 'hospital-marker',
             Cart: 'cart',
+            Payment: 'credit-card',
             Orders: 'clipboard-list',
             Settings: 'cog'
           };
@@ -86,6 +96,11 @@ function CustomerNavigator() {
         }
       })}
     >
+      <CustomerTabs.Screen
+        name="Medicines"
+        component={MedicineSearchScreen}
+        options={{ title: t('search.title') }}
+      />
       <CustomerTabs.Screen
         name="Pharmacies"
         component={PharmacyNavigator}
@@ -95,6 +110,11 @@ function CustomerNavigator() {
         name="Cart"
         component={CartScreen}
         options={{ title: t('cart.title') }}
+      />
+      <CustomerTabs.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={{ title: t('payment.title') }}
       />
       <CustomerTabs.Screen
         name="Orders"
@@ -112,15 +132,42 @@ function CustomerNavigator() {
 
 function PharmacistNavigator() {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
+  const pharmacyState = useAppSelector(state => state.pharmacy as PharmacyState);
+
+  useEffect(() => {
+    dispatch(fetchManagedPharmacies());
+  }, [dispatch]);
+
+  const activePharmacies = useMemo(
+    () => pharmacyState.managed.filter(pharmacy => pharmacy.status === 'Active'),
+    [pharmacyState.managed]
+  );
+
+  const hasActivePharmacy = activePharmacies.length > 0;
+
+  if (pharmacyState.managedLoading && !hasActivePharmacy) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 }}>
+        <ActivityIndicator animating size="large" />
+        <Text>{t('pharmacies.loadingPharmacies')}</Text>
+      </View>
+    );
+  }
+
+  if (!hasActivePharmacy) {
+    return <PharmacyProfileScreen />;
+  }
+
   return (
     <PharmacistTabs.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color, size }) => {
           const icons: Record<string, string> = {
-            PharmacyOrders: 'clipboard-check',
-            PharmacyInventory: 'medical-bag',
-            PharmacistSettings: 'cog'
+            PharmacyOrders: 'bell-badge',
+            PrescriptionValidation: 'clipboard-check-outline',
+            PharmacyReports: 'chart-box'
           };
           return <MaterialCommunityIcons name={(icons[route.name] as any) ?? 'circle-outline'} color={color} size={size} />;
         }
@@ -129,17 +176,17 @@ function PharmacistNavigator() {
       <PharmacistTabs.Screen
         name="PharmacyOrders"
         component={PharmacyOrdersScreen}
-        options={{ title: t('orders.historyTitle') }}
+        options={{ title: t('pharmacies.notifications') }}
       />
       <PharmacistTabs.Screen
-        name="PharmacyInventory"
-        component={PharmacyInventoryScreen}
-        options={{ title: t('pharmacies.inventory') }}
+        name="PrescriptionValidation"
+        component={PrescriptionValidationScreen}
+        options={{ title: t('pharmacies.validation') }}
       />
       <PharmacistTabs.Screen
-        name="PharmacistSettings"
-        component={SettingsScreen}
-        options={{ title: t('common.language') }}
+        name="PharmacyReports"
+        component={PharmacyReportsScreen}
+        options={{ title: t('pharmacies.reports') }}
       />
     </PharmacistTabs.Navigator>
   );

@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { getAccessToken, clearTokens } from '../utils/storage';
 
-const DEFAULT_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://127.0.0.1:5000';
+const DEFAULT_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:5005' : 'http://127.0.0.1:5005';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_BASE_URL;
 

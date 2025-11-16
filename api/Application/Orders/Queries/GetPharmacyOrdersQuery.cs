@@ -36,6 +36,15 @@ public sealed class GetPharmacyOrdersQueryHandler : IRequestHandler<GetPharmacyO
             }
         }
 
+        var isActivePharmacy = await _dbContext.Pharmacies
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == request.PharmacyId && p.Status == TenantStatus.Active, cancellationToken);
+
+        if (!isActivePharmacy)
+        {
+            return Array.Empty<OrderDetailDto>();
+        }
+
         var query = _dbContext.Orders
             .AsNoTracking()
             .Where(o => o.PharmacyId == request.PharmacyId);

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { getNearbyPharmacies, getManagedPharmacies, Pharmacy } from '../services/pharmacyService';
+import { getNearbyPharmacies, getManagedPharmacies, onboardPharmacy, OnboardPayload, Pharmacy } from '../services/pharmacyService';
 
 export interface PharmacyState {
   nearby: Pharmacy[];
@@ -8,6 +8,13 @@ export interface PharmacyState {
   loading: boolean;
   error: string | null;
   lastUpdatedAt?: number;
+  managedLoading: boolean;
+  hasLoadedManaged: boolean;
+  onboarding: {
+    submitting: boolean;
+    error: string | null;
+    lastPharmacyId?: string;
+  };
 }
 
 const initialState: PharmacyState = {
@@ -15,7 +22,13 @@ const initialState: PharmacyState = {
   managed: [],
   selectedPharmacy: null,
   loading: false,
-  error: null
+  error: null,
+  managedLoading: false,
+  hasLoadedManaged: false,
+  onboarding: {
+    submitting: false,
+    error: null
+  }
 };
 
 export const fetchNearbyPharmacies = createAsyncThunk(
@@ -30,26 +43,63 @@ export const fetchNearbyPharmacies = createAsyncThunk(
   }
 );
 
-export const fetchManagedPharmacies = createAsyncThunk('pharmacy/managed', async (_, { rejectWithValue }) => {
-  try {
-    return await getManagedPharmacies();
-  } catch (error) {
-    return rejectWithValue('errors.network');
+interface FetchManagedPharmaciesArgs {
+  force?: boolean;
+}
+
+export const fetchManagedPharmacies = createAsyncThunk<Pharmacy[], FetchManagedPharmaciesArgs | undefined>(
+  'pharmacy/managed',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await getManagedPharmacies();
+    } catch (error) {
+      return rejectWithValue('errors.network');
+    }
+  },
+  {
+    condition: (args, { getState }) => {
+      const force = args?.force ?? false;
+      if (force) {
+        return true;
+      }
+
+      const state = getState() as { pharmacy: PharmacyState };
+      if (state.pharmacy.managedLoading) {
+        return false;
+      }
+
+      return !state.pharmacy.hasLoadedManaged;
+    }
   }
-});
+);
+
+export const submitPharmacyProfile = createAsyncThunk(
+  'pharmacy/onboard',
+  async (payload: OnboardPayload, { rejectWithValue }) => {
+    try {
+      const response = await onboardPharmacy(payload);
+      return response;
+    } catch (error) {
+      return rejectWithValue('errors.network');
+    }
+  }
+);
 
 const pharmacySlice = createSlice({
   name: 'pharmacy',
   initialState,
   reducers: {
     selectPharmacy(state, action: PayloadAction<string>) {
-      const pharmacy = state.nearby.find(p => p.id === action.payload) ?? null;
+      const pharmacy = state.nearby.find(p => p.id === action.payload)
+        ?? state.managed.find(p => p.id === action.payload)
+        ?? null;
       state.selectedPharmacy = pharmacy;
     },
     clearPharmacies(state) {
       state.nearby = [];
       state.managed = [];
       state.selectedPharmacy = null;
+      state.hasLoadedManaged = false;
     }
   },
   extraReducers: builder => {
@@ -68,10 +118,32 @@ const pharmacySlice = createSlice({
         state.error = (action.payload as string) ?? 'errors.unknown';
       })
       .addCase(fetchManagedPharmacies.fulfilled, (state, action) => {
+        state.managedLoading = false;
         state.managed = action.payload;
+        state.hasLoadedManaged = true;
       })
       .addCase(fetchManagedPharmacies.rejected, (state, action) => {
+        state.managedLoading = false;
         state.error = (action.payload as string) ?? 'errors.unknown';
+      })
+      .addCase(fetchManagedPharmacies.pending, state => {
+        state.managedLoading = true;
+        state.error = null;
+      })
+      .addCase(submitPharmacyProfile.pending, state => {
+        state.onboarding.submitting = true;
+        state.onboarding.error = null;
+      })
+      .addCase(submitPharmacyProfile.fulfilled, (state, action) => {
+        state.onboarding.submitting = false;
+        state.onboarding.lastPharmacyId = action.payload.id;
+        state.managed = [...state.managed.filter(p => p.id !== action.payload.id), action.payload];
+        state.selectedPharmacy = action.payload;
+        state.hasLoadedManaged = true;
+      })
+      .addCase(submitPharmacyProfile.rejected, (state, action) => {
+        state.onboarding.submitting = false;
+        state.onboarding.error = (action.payload as string) ?? 'errors.unknown';
       });
   }
 });

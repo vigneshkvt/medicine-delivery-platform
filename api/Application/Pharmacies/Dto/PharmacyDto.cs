@@ -1,9 +1,11 @@
 using System;
+using Medicine.Domain.Enums;
 
 namespace Medicine.Application.Pharmacies.Dto;
 
 public sealed record PharmacyDto(
     Guid Id,
+    TenantStatus Status,
     string Name,
     string Description,
     string ContactNumber,

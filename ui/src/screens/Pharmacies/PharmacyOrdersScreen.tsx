@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Card, Text, ActivityIndicator, Button, Menu, Chip } from 'react-native-paper';
+import { Card, Text, ActivityIndicator, Button, Menu, Chip, Snackbar } from 'react-native-paper';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { fetchManagedPharmacies, PharmacyState, selectPharmacy } from '../../store/pharmacySlice';
 import { fetchPharmacyOrders, changeOrderStatus, submitPrescriptionReview, OrdersState } from '../../store/ordersSlice';
 
-const statusOptions = ['Approved', 'Preparing', 'ReadyForDelivery', 'OutForDelivery', 'Completed', 'Cancelled'];
+const statusOptions = ['Approved', 'Preparing', 'ReadyForDelivery', 'OutForDelivery', 'Completed', 'Cancelled', 'Rejected'];
 const prescriptionStatuses = ['Approved', 'Rejected'];
 
 const statusKey = (status: string) => status.charAt(0).toLowerCase() + status.slice(1);
@@ -18,21 +19,27 @@ const PharmacyOrdersScreen: React.FC = () => {
   const pharmacyState = useAppSelector(state => state.pharmacy as PharmacyState);
   const ordersState = useAppSelector(state => state.orders as OrdersState);
 
+  const activePharmacies = useMemo(
+    () => pharmacyState.managed.filter(pharmacy => pharmacy.status === 'Active'),
+    [pharmacyState.managed]
+  );
+
   const [selectedPharmacyId, setSelectedPharmacyId] = useState<string | null>(null);
   const [openMenuFor, setOpenMenuFor] = useState<string | null>(null);
   const [openPrescriptionMenu, setOpenPrescriptionMenu] = useState<string | null>(null);
+  const [snackbarMessage, setSnackbarMessage] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchManagedPharmacies());
   }, [dispatch]);
 
   useEffect(() => {
-    if (!selectedPharmacyId && pharmacyState.managed.length > 0) {
-      const first = pharmacyState.managed[0];
+    if (!selectedPharmacyId && activePharmacies.length > 0) {
+      const first = activePharmacies[0];
       setSelectedPharmacyId(first.id);
       dispatch(selectPharmacy(first.id));
     }
-  }, [pharmacyState.managed, selectedPharmacyId, dispatch]);
+  }, [activePharmacies, selectedPharmacyId, dispatch]);
 
   useEffect(() => {
     if (selectedPharmacyId) {
@@ -40,18 +47,63 @@ const PharmacyOrdersScreen: React.FC = () => {
     }
   }, [dispatch, selectedPharmacyId]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!selectedPharmacyId) {
+        return undefined;
+      }
+      dispatch(fetchPharmacyOrders({ pharmacyId: selectedPharmacyId }));
+      const intervalId = setInterval(() => {
+        dispatch(fetchPharmacyOrders({ pharmacyId: selectedPharmacyId }));
+      }, 15000);
+      return () => clearInterval(intervalId);
+    }, [dispatch, selectedPharmacyId])
+  );
+
+  const showSnackbar = (key: string | null) => {
+    if (!key) {
+      setSnackbarMessage(null);
+      return;
+    }
+    setSnackbarMessage(key);
+  };
+
+  const handleStatusChange = async (orderId: string, status: string) => {
+    if (!selectedPharmacyId) {
+      return;
+    }
+    try {
+      await dispatch(changeOrderStatus({ orderId, pharmacyId: selectedPharmacyId, status })).unwrap();
+      showSnackbar('orders.statusUpdateConfirmation');
+    } catch (error) {
+      showSnackbar('errors.unknown');
+    }
+  };
+
+  const handlePrescriptionReview = async (orderId: string, status: string) => {
+    if (!selectedPharmacyId) {
+      return;
+    }
+    try {
+      await dispatch(submitPrescriptionReview({ orderId, pharmacyId: selectedPharmacyId, status })).unwrap();
+      showSnackbar('orders.prescriptionUpdateConfirmation');
+    } catch (error) {
+      showSnackbar('errors.unknown');
+    }
+  };
+
   const orders = selectedPharmacyId ? ordersState.pharmacyOrders[selectedPharmacyId] ?? [] : [];
 
   return (
     <View style={styles.container}>
-      {pharmacyState.managed.length === 0 ? (
+      {activePharmacies.length === 0 ? (
         <View style={styles.empty}>
           <Text>{t('pharmacies.noResults')}</Text>
         </View>
       ) : (
         <>
           <FlatList
-            data={pharmacyState.managed}
+            data={activePharmacies}
             horizontal
             showsHorizontalScrollIndicator={false}
             keyExtractor={item => item.id}
@@ -115,9 +167,7 @@ const PharmacyOrdersScreen: React.FC = () => {
                           key={status}
                           onPress={() => {
                             setOpenMenuFor(null);
-                            if (selectedPharmacyId) {
-                              dispatch(changeOrderStatus({ orderId: item.orderId, pharmacyId: selectedPharmacyId, status }));
-                            }
+                            handleStatusChange(item.orderId, status);
                           }}
                           title={t(`orders.status.${statusKey(status)}`, { defaultValue: status })}
                         />
@@ -134,20 +184,32 @@ const PharmacyOrdersScreen: React.FC = () => {
                             key={status}
                             onPress={() => {
                               setOpenPrescriptionMenu(null);
-                              if (selectedPharmacyId) {
-                                dispatch(submitPrescriptionReview({ orderId: item.orderId, pharmacyId: selectedPharmacyId, status }));
-                              }
+                              handlePrescriptionReview(item.orderId, status);
                             }}
                             title={t(`orders.status.${statusKey(status)}`, { defaultValue: status })}
                           />
                         ))}
                       </Menu>
                     )}
+                    <Button
+                      mode="text"
+                      onPress={() => handleStatusChange(item.orderId, 'Rejected')}
+                      textColor="#B3261E"
+                    >
+                      {t('orders.rejectOrder')}
+                    </Button>
                   </Card.Actions>
                 </Card>
               )}
             />
           )}
+          <Snackbar
+            visible={!!snackbarMessage}
+            onDismiss={() => showSnackbar(null)}
+            duration={3000}
+          >
+            {snackbarMessage ? t(snackbarMessage) : ''}
+          </Snackbar>
         </>
       )}
     </View>

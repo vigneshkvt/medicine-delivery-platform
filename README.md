@@ -7,17 +7,18 @@ A full-stack medicine ordering platform built with ASP.NET Core Web API and Reac
 ### Customer Features
 - 🔐 User authentication (Login/Register)
 - 📍 Location-based pharmacy discovery
-- 💊 Browse pharmacy inventory
+- 🔎 OGD-backed medicine catalogue search with detailed previews
 - 🛒 Shopping cart with prescription upload
+- 🏥 Pharmacy selection at checkout with location context
 - 📦 Order tracking and history
 - 🌐 Multi-language support (English/Tamil)
 - 💵 Cash on delivery payment
 
 ### Pharmacist Features
-- 📋 Order management dashboard
-- 💊 Inventory management
-- 📸 Prescription review and approval
-- 🏪 Pharmacy onboarding
+- 🏪 Pharmacy profile onboarding (licence, address, geo-coordinates)
+- 🔔 Real-time order notifications
+- 📸 Prescription validation workflow with approve/reject controls
+- 📊 Order volume and revenue insights
 
 ### Admin Features
 - 📊 Dashboard with metrics
@@ -148,6 +149,15 @@ Edit `api/appsettings.Development.json`:
     "Issuer": "MedicineAPI",
     "Audience": "MedicineApp",
     "SigningKey": "your-secret-key-min-32-chars"
+  },
+  "OgdCatalog": {
+    "BaseUrl": "https://api.data.gov.in/resource",
+    "ResourceId": "<fill-in-ogd-resource-id>",
+    "ApiKey": "<your-data-gov-key>",
+    "SearchField": "drug_name",
+    "DefaultLimit": 25,
+    "MaxLimit": 100,
+    "TimeoutSeconds": 10
   }
 }
 ```
@@ -162,6 +172,9 @@ The API URL is set via environment variable `EXPO_PUBLIC_API_URL` when starting 
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login
 
+### Medicines
+- `GET /api/medicines/search` - Search OGD catalogued medicines by name/composition
+
 ### Pharmacies
 - `GET /api/pharmacies/nearby` - Find nearby pharmacies
 - `GET /api/pharmacies/{id}/inventory` - Get pharmacy inventory
@@ -169,15 +182,18 @@ The API URL is set via environment variable `EXPO_PUBLIC_API_URL` when starting 
 - `POST /api/pharmacies/{id}/approve` - Approve pharmacy (Admin)
 
 ### Orders
-- `POST /api/orders` - Create order
-- `GET /api/orders` - Get customer orders
-- `GET /api/orders/pharmacy` - Get pharmacy orders
-- `PUT /api/orders/{id}/status` - Update order status
+- `POST /api/orders` - Create order (multipart with prescription upload)
+- `GET /api/orders/my` - Get customer orders
+- `GET /api/orders/pharmacy/{pharmacyId}` - Get orders for a pharmacy
+- `PATCH /api/orders/{id}/status` - Update order status
 - `POST /api/orders/{id}/prescription/review` - Review prescription
 
 ### Admin
 - `GET /api/admin/dashboard` - Get dashboard metrics
 - `GET /api/admin/pharmacies/pending` - Get pending pharmacies
+
+### Compliance
+- `GET /api/policies/ogd-compliance` - Review OGD adoption and legal safeguards checklist
 
 ## Development Notes
 

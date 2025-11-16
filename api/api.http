@@ -1,6 +1,11 @@
 @api_HostAddress = http://localhost:5172
 
-GET {{api_HostAddress}}/weatherforecast/
+### Medicine catalog search (requires EXPO_PUBLIC_API_URL pointing to API)
+GET {{api_HostAddress}}/api/medicines/search?query=paracetamol
+Accept: application/json
+
+### OGD compliance checklist
+GET {{api_HostAddress}}/api/policies/ogd-compliance
 Accept: application/json
 
 ###

@@ -81,6 +81,7 @@ public sealed class OnboardPharmacyCommandHandler : IRequestHandler<OnboardPharm
 
         var response = new PharmacyDto(
             pharmacy.Id,
+            pharmacy.Status,
             pharmacy.Name,
             pharmacy.Description,
             pharmacy.ContactNumber,

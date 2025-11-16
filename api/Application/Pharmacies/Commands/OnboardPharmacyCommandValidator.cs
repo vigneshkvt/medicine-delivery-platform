@@ -9,7 +9,7 @@ public sealed class OnboardPharmacyCommandValidator : AbstractValidator<OnboardP
         RuleFor(c => c.OwnerUserId).NotEmpty();
         RuleFor(c => c.TenantName).NotEmpty().MaximumLength(256);
         RuleFor(c => c.LegalName).NotEmpty().MaximumLength(256);
-        RuleFor(c => c.TaxRegistrationNumber).NotEmpty().MaximumLength(64);
+        RuleFor(c => c.TaxRegistrationNumber).MaximumLength(64);
         RuleFor(c => c.PharmacyName).NotEmpty().MaximumLength(256);
         RuleFor(c => c.Description).MaximumLength(1024);
         RuleFor(c => c.Line1).NotEmpty().MaximumLength(256);

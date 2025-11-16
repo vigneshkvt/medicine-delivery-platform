@@ -28,7 +28,7 @@ public sealed class AuthenticationController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthTokenDto>> Register([FromBody] RegisterRequest request)
     {
-        var result = await _mediator.Send(new RegisterCommand(request.Email, request.Password, request.FirstName, request.LastName, request.PreferredLanguage));
+        var result = await _mediator.Send(new RegisterCommand(request.Email, request.Password, request.FirstName, request.LastName, request.PreferredLanguage, request.Role));
 
         if (!result.Succeeded)
         {

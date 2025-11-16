@@ -1,7 +1,10 @@
 import { apiRequest } from './apiClient';
 
+export type PharmacyStatus = 'PendingApproval' | 'Active' | 'Suspended' | 'Deactivated';
+
 export interface Pharmacy {
   id: string;
+  status: PharmacyStatus;
   name: string;
   description: string;
   contactNumber: string;
@@ -94,5 +97,11 @@ export const onboardPharmacy = (payload: OnboardPayload) =>
 export const approvePharmacy = (pharmacyId: string) =>
   apiRequest<void>({
     path: `/api/pharmacies/${pharmacyId}/approve`,
+    method: 'POST'
+  });
+
+export const rejectPharmacy = (pharmacyId: string) =>
+  apiRequest<void>({
+    path: `/api/pharmacies/${pharmacyId}/reject`,
     method: 'POST'
   });

@@ -16,13 +16,20 @@ export interface LocationState {
   hasOnboarded: boolean;
 }
 
+const FALLBACK_LATITUDE = 13.0827;
+const FALLBACK_LONGITUDE = 80.2707;
+
 const initialState: LocationState = {
-  permission: 'unknown',
+  permission: 'granted',
   currentLocation: null,
-  selectedLocation: null,
+  selectedLocation: {
+    label: 'Chennai Central (Default)',
+    latitude: FALLBACK_LATITUDE,
+    longitude: FALLBACK_LONGITUDE
+  },
   loading: false,
   error: null,
-  hasOnboarded: false
+  hasOnboarded: true
 };
 
 export const resolveCurrentLocation = createAsyncThunk('location/current', async (_, { rejectWithValue }) => {
@@ -61,8 +68,11 @@ const locationSlice = createSlice({
         state.loading = false;
         state.permission = 'granted';
         state.currentLocation = action.payload as Coordinates;
+        const coords = action.payload as Coordinates;
+        const isFallbackLocation =
+          Math.abs(coords.latitude - FALLBACK_LATITUDE) < 0.0001 && Math.abs(coords.longitude - FALLBACK_LONGITUDE) < 0.0001;
         state.selectedLocation = {
-          label: 'Current location',
+          label: isFallbackLocation ? 'Chennai Central (Fallback)' : 'Current location',
           latitude: action.payload.latitude,
           longitude: action.payload.longitude
         };

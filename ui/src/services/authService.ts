@@ -18,6 +18,7 @@ interface RegisterPayload {
   firstName: string;
   lastName: string;
   preferredLanguage: 'en' | 'ta';
+  role: 'Customer' | 'Pharmacist';
 }
 
 export const login = async (payload: LoginPayload) => {

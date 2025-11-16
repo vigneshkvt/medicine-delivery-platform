@@ -29,6 +29,7 @@ public sealed class GetNearbyPharmaciesQueryHandler : IRequestHandler<GetNearbyP
             .Where(p => p.Status == Medicine.Domain.Enums.TenantStatus.Active)
             .Select(p => new PharmacyDto(
                 p.Id,
+                p.Status,
                 p.Name,
                 p.Description,
                 p.ContactNumber,

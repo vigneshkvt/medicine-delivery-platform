@@ -83,7 +83,7 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     setPharmacy(state, action: PayloadAction<string>) {
-      if (state.pharmacyId !== action.payload) {
+      if (state.pharmacyId && state.pharmacyId !== action.payload) {
         state.items = [];
         state.prescription = null;
       }

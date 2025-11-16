@@ -25,10 +25,12 @@ public sealed class GetAdminDashboardQueryHandler : IRequestHandler<GetAdminDash
         var activePharmacies = await _dbContext.Pharmacies.CountAsync(p => p.Status == Medicine.Domain.Enums.TenantStatus.Active, cancellationToken);
         var pendingPharmacies = await _dbContext.Pharmacies.CountAsync(p => p.Status == Medicine.Domain.Enums.TenantStatus.PendingApproval, cancellationToken);
         var totalOrders = await _dbContext.Orders.CountAsync(cancellationToken);
-        var totalOrderValue = await _dbContext.Orders.SumAsync(o => (decimal?)o.Total.Amount, cancellationToken) ?? 0m;
+        
+        // Load orders into memory first to access value object properties
+        var allOrders = await _dbContext.Orders.AsNoTracking().ToListAsync(cancellationToken);
+        var totalOrderValue = allOrders.Sum(o => o.Total.Amount);
 
-        var topPharmaciesQuery = await _dbContext.Orders
-            .AsNoTracking()
+        var topPharmaciesQuery = allOrders
             .GroupBy(o => o.Pharmacy.Name)
             .Select(g => new AdminTopPharmacyDto(
                 g.Key,
@@ -36,10 +38,10 @@ public sealed class GetAdminDashboardQueryHandler : IRequestHandler<GetAdminDash
                 g.Sum(o => o.Total.Amount)))
             .OrderByDescending(x => x.Orders)
             .Take(5)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
-        var topMedicinesQuery = await _dbContext.OrderItems
-            .AsNoTracking()
+        var allOrderItems = await _dbContext.OrderItems.AsNoTracking().ToListAsync(cancellationToken);
+        var topMedicinesQuery = allOrderItems
             .GroupBy(i => i.MedicineName)
             .Select(g => new AdminTopMedicineDto(
                 g.Key,
@@ -47,7 +49,7 @@ public sealed class GetAdminDashboardQueryHandler : IRequestHandler<GetAdminDash
                 g.Sum(i => i.Total.Amount)))
             .OrderByDescending(x => x.Orders)
             .Take(5)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return new AdminDashboardDto(
             totalUsers,

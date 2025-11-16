@@ -15,7 +15,8 @@ public sealed record RegisterCommand(
     string Password,
     string FirstName,
     string LastName,
-    string PreferredLanguage
+    string PreferredLanguage,
+    UserRole Role
 ) : IRequest<Result<AuthTokenDto>>;
 
 public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<AuthTokenDto>>
@@ -41,7 +42,8 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, Re
         }
 
         var hashedPassword = _passwordHasher.Hash(request.Password);
-        var user = new User(normalizedEmail, hashedPassword, request.FirstName.Trim(), request.LastName.Trim(), UserRole.Customer, request.PreferredLanguage);
+        var effectiveRole = request.Role == UserRole.Pharmacist ? UserRole.Pharmacist : UserRole.Customer;
+        var user = new User(normalizedEmail, hashedPassword, request.FirstName.Trim(), request.LastName.Trim(), effectiveRole, request.PreferredLanguage);
 
         _dbContext.Users.Add(user);
         await _dbContext.SaveChangesAsync(cancellationToken);

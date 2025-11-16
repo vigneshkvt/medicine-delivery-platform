@@ -85,10 +85,16 @@ const ordersSlice = createSlice({
         state.loading = false;
         state.error = (action.payload as string) ?? 'errors.unknown';
       })
+      .addCase(fetchPharmacyOrders.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchPharmacyOrders.fulfilled, (state, action) => {
+        state.loading = false;
         state.pharmacyOrders[action.payload.pharmacyId] = action.payload.orders;
       })
       .addCase(fetchPharmacyOrders.rejected, (state, action) => {
+        state.loading = false;
         state.error = (action.payload as string) ?? 'errors.unknown';
       })
       .addCase(changeOrderStatus.fulfilled, (state, action) => {

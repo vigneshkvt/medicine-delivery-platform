@@ -31,7 +31,17 @@ export const loginUser = createAsyncThunk('auth/login', async (payload: { email:
 
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (payload: { email: string; password: string; firstName: string; lastName: string; preferredLanguage: 'en' | 'ta' }, { rejectWithValue }) => {
+  async (
+    payload: {
+      email: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      preferredLanguage: 'en' | 'ta';
+      role: 'Customer' | 'Pharmacist';
+    },
+    { rejectWithValue }
+  ) => {
     try {
       const response = await AuthService.register(payload);
       i18n.changeLanguage(response.preferredLanguage).catch(() => undefined);

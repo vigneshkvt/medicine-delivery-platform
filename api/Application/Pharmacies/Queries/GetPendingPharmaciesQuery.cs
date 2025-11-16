@@ -28,6 +28,7 @@ public sealed class GetPendingPharmaciesQueryHandler : IRequestHandler<GetPendin
             .Where(p => p.Status == TenantStatus.PendingApproval)
             .Select(p => new PharmacyDto(
                 p.Id,
+                p.Status,
                 p.Name,
                 p.Description,
                 p.ContactNumber,

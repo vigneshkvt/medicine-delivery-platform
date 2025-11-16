@@ -27,6 +27,7 @@ public sealed class GetManagedPharmaciesQueryHandler : IRequestHandler<GetManage
             ? _dbContext.Pharmacies.AsNoTracking().Where(p => p.Status == Medicine.Domain.Enums.TenantStatus.Active)
                 .Select(p => new PharmacyDto(
                     p.Id,
+                    p.Status,
                     p.Name,
                     p.Description,
                     p.ContactNumber,
@@ -49,6 +50,7 @@ public sealed class GetManagedPharmaciesQueryHandler : IRequestHandler<GetManage
                 .Where(m => m.UserId == request.UserId)
                 .Select(m => new PharmacyDto(
                     m.Pharmacy.Id,
+                    m.Pharmacy.Status,
                     m.Pharmacy.Name,
                     m.Pharmacy.Description,
                     m.Pharmacy.ContactNumber,
